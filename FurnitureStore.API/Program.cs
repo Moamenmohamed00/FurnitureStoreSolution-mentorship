@@ -1,4 +1,5 @@
 using FurnitureStore.Domain.Entities;
+using FurnitureStore.Infrastructure.Repositories;
 using FurnitureStore.Persistence.DbContext;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options=>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
