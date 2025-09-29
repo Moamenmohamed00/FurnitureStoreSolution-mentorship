@@ -14,7 +14,7 @@ namespace FurnitureStore.Domain.Entities
         public string Street { get; set; }
         public string City { get; set; }
         public string State { get; set; }
-        public string ZipCode { get; set; }
+        public string? ZipCode { get; set; }
         public Country Country { get; set; }
         public User User { get; set; }
         //[ForeignKey("User")]

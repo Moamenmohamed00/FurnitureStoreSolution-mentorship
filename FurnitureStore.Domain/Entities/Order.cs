@@ -16,13 +16,12 @@ namespace FurnitureStore.Domain.Entities
         public string ShippingStreet { get; set; }
         public string ShippingCity { get; set; }
         public string ShippingState { get; set; }
-        public string ShippingZipCode { get; set; }
+        public string? ShippingZipCode { get; set; }
         public Country ShippingCountry { get; set; }
         public PaymentMethod paymentMethod { get; set; }
         public User? User { get; set; }
         [ForeignKey("User")]
         public string? UserId { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
-
     }
 }

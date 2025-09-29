@@ -25,7 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FurnitureStore.Application\FurnitureStore.Application.csproj" />
     <ProjectReference Include="..\FurnitureStore.Domain\FurnitureStore.Domain.csproj" />
     <ProjectReference Include="..\FurnitureStore.Persistence\FurnitureStore.Persistence.csproj" />
   </ItemGroup>

@@ -7,13 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="IServices\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\FurnitureStore.Domain\FurnitureStore.Domain.csproj" />
+    <ProjectReference Include="..\FurnitureStore.Infrastructure\FurnitureStore.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
