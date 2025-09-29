@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FurnitureStore.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +13,6 @@ namespace FurnitureStore.Application.DTOs
         public string? Description { get; set; }
         public decimal Price { get; set; }
         public int Stock { get; set; }
+        public ProductColor Color { get; set; }
     }
 }

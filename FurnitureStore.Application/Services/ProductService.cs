@@ -1,6 +1,7 @@
 ﻿using FurnitureStore.Application.DTOs;
 using FurnitureStore.Application.IServices;
 using FurnitureStore.Domain.Entities;
+using FurnitureStore.Domain.Enums;
 using FurnitureStore.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,8 @@ namespace FurnitureStore.Application.Services
                 Name = createProductDto.Name,
                 Description = createProductDto.Description,
                 Price = createProductDto.Price,
-                Stock = createProductDto.Stock
+                Stock = createProductDto.Stock,
+                Color = createProductDto.Color,
             };
 
             await _unitOfWork.Products.AddAsync(product);
@@ -35,7 +37,8 @@ namespace FurnitureStore.Application.Services
                 Name = product.Name,
                 Description = product.Description,
                 Price = product.Price,
-                Stock = product.Stock
+                Stock = product.Stock,
+                Color = product.Color ?? default(ProductColor) // Explicitly handle nullable ProductColor
             };
         }
 
@@ -61,7 +64,8 @@ namespace FurnitureStore.Application.Services
                 Name = p.Name,
                 Description = p.Description,
                 Price = p.Price,
-                Stock = p.Stock
+                Stock = p.Stock,
+                Color = p.Color ?? default(ProductColor) // Explicitly handle nullable ProductColor
             });
         }
 
@@ -78,7 +82,8 @@ namespace FurnitureStore.Application.Services
                 Name = product.Name,
                 Description = product.Description,
                 Price = product.Price,
-                Stock = product.Stock
+                Stock = product.Stock,
+                Color = product.Color ?? default(ProductColor) // Explicitly handle nullable ProductColor
             };
         }
 
@@ -93,6 +98,7 @@ namespace FurnitureStore.Application.Services
             product.Description = createProductDto.Description;
             product.Price = createProductDto.Price;
             product.Stock = createProductDto.Stock;
+            product.Color = createProductDto.Color;
             _unitOfWork.Products.Update(product);
             await _unitOfWork.CompleteAsync();
             return true;
