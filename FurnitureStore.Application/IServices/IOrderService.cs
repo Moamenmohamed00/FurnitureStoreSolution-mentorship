@@ -23,5 +23,8 @@ namespace FurnitureStore.Application.IServices
         Task<bool> DeleteOrderItemAsync(int id);
         Task<bool> UpdateOrderItemQuantityAsync(int orderItemId, int newQuantity);
         Task<IEnumerable<OrderItemDto>> GetOrderItemsByOrderIdAsync(int orderId);
+        Task<OrderItemDto?> GetOrderItemByIdAsync(int orderItemId);
+        Task<bool> UpdateOrderItemAsync(int orderItemId, CreateOrderItemDto updateOrderItemDto);
+        Task<bool> OrderExistsAsync(int orderId);
     }
 }

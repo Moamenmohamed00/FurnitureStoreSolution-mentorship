@@ -14,5 +14,8 @@ namespace FurnitureStore.Application.IServices
         Task<CartItemDto> CreateCartItemAsync(CreateCartItemDto createCartItemDto);
         Task<bool> UpdateCartItemAsync(int id, CreateCartItemDto createCartItemDto);
         Task<bool> DeleteCartItemAsync(int id);
+        Task<bool> ClearCartAsync(string userId); 
+        Task<bool> CartItemExistsAsync(string userId, int productId);
+        Task<bool> UpdateCartItemQuantityAsync(int id, int newQuantity);
     }
 }

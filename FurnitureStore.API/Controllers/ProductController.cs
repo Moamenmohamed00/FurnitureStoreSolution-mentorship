@@ -1,0 +1,83 @@
+﻿using FurnitureStore.Application.DTOs;
+using FurnitureStore.Application.IServices;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FurnitureStore.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductController : Controller
+    {
+        private readonly IProductService _productService;
+
+        public ProductController(IProductService productService)
+        {
+            _productService = productService;
+        }
+
+        // GET: api/product
+        [HttpGet]
+        [AllowAnonymous] 
+        public async Task<IActionResult> GetAll()
+        {
+            var products = await _productService.GetAllProductsAsync();
+            return Ok(products);
+        }
+
+        // GET: api/product/{id}
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product == null)
+                return NotFound("Product not found.");
+
+            return Ok(product);
+        }
+
+        // POST: api/product
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create([FromBody] CreateProductDto createProductDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var created = await _productService.CreateProductAsync(createProductDto);
+            if (created == null)
+                return BadRequest("Failed to create product.");
+
+            return Ok("Product created successfully.");
+        }
+
+        // PUT: api/product/{id}
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Update(int id, [FromBody] CreateProductDto updateProductDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var success = await _productService.UpdateProductAsync(id, updateProductDto);
+            if (!success)
+                return NotFound("Product not found.");
+
+            return Ok("Product updated successfully.");
+        }
+
+        // DELETE: api/product/{id}
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var success = await _productService.DeleteProductAsync(id);
+            if (!success)
+                return NotFound("Product not found.");
+
+            return Ok("Product deleted successfully.");
+        }
+    }
+}
+

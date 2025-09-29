@@ -92,5 +92,40 @@ namespace FurnitureStore.Application.Services
             await _unitOfWork.CompleteAsync();
             return true;
         }
+
+        public async Task<bool> ClearCartAsync(string userId)
+        {
+            var cartItems = await _unitOfWork.CartItems.FindAsync(ci => ci.UserId == userId);
+            if (!cartItems.Any())
+                return false;
+
+            foreach (var item in cartItems)
+            {
+              await _unitOfWork.CartItems.DeleteAsync(item.Id);
+            }
+
+            await _unitOfWork.CompleteAsync();
+            return true;
+        }
+
+        public async Task<bool> CartItemExistsAsync(string userId, int productId)
+        {
+            var existing = await _unitOfWork.CartItems
+                    .FindAsync(ci => ci.UserId == userId && ci.ProductId == productId);
+
+            return existing.Any();
+        }
+
+        public async Task<bool> UpdateCartItemQuantityAsync(int id, int newQuantity)
+        {
+            var cartItem = await _unitOfWork.CartItems.GetByIdAsync(id);
+            if (cartItem == null)
+                return false;
+
+            cartItem.Quantity = newQuantity;
+            _unitOfWork.CartItems.Update(cartItem);
+            await _unitOfWork.CompleteAsync();
+            return true;
+        }
     }
 }
