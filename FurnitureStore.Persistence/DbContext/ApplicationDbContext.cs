@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace FurnitureStore.Persistence.DbContext
 {
-    public class ApplicationDbContext:IdentityDbContext<User>
+    public class ApplicationDbContext : IdentityDbContext<User>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
@@ -40,5 +40,9 @@ namespace FurnitureStore.Persistence.DbContext
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<RefreshToken> RefreshTokens
+        {
+            get; set;
+        }
     }
 }

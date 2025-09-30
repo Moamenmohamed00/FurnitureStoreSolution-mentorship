@@ -17,6 +17,7 @@ namespace FurnitureStore.Infrastructure.Repositories
         IGenericRepository<Brand> Brands { get; }
         IGenericRepository<CartItem> CartItems { get; }
         IGenericRepository<Address> Addresses { get; }
+        IGenericRepository<RefreshToken> RefreshTokens { get; }
         Task<int> CompleteAsync();
     }
 }

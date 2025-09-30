@@ -28,6 +28,9 @@ namespace FurnitureStore.Infrastructure.Repositories
         public IGenericRepository<CartItem> CartItems{ get; }
 
         public IGenericRepository<Address> Addresses { get; }
+
+        public IGenericRepository<RefreshToken> RefreshTokens { get; } /*=> throw new NotImplementedException();*/
+
         public UnitOfWork(ApplicationDbContext context)
         {
             _context = context;
@@ -36,6 +39,10 @@ namespace FurnitureStore.Infrastructure.Repositories
             Brands = new Repository<Brand>(_context);
             Users = new Repository<User>(_context);
             Orders = new Repository<Order>(_context);
+            OrderItems = new Repository<OrderItem>(_context);
+            CartItems = new Repository<CartItem>(_context);
+            Addresses = new Repository<Address>(_context);
+            RefreshTokens = new Repository<RefreshToken>(_context);
         }
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();

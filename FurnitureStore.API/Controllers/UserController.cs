@@ -17,7 +17,7 @@ namespace FurnitureStore.API.Controllers
             _userService = userService;
         }
 
-        // ✅ Get All Users
+        //  Get All Users
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -25,7 +25,7 @@ namespace FurnitureStore.API.Controllers
             return Ok(users);
         }
 
-        // ✅ Get User by Id
+        //  Get User by Id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
@@ -36,7 +36,7 @@ namespace FurnitureStore.API.Controllers
             return Ok(user);
         }
 
-        // ✅ Update User
+        //  Update User
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] UpdateUserDto updateUserDto)
         {
@@ -47,7 +47,7 @@ namespace FurnitureStore.API.Controllers
             return Ok("User updated successfully.");
         }
 
-        // ✅ Delete User
+        //  Delete User by Id
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
@@ -58,7 +58,7 @@ namespace FurnitureStore.API.Controllers
             return Ok("User deleted successfully.");
         }
 
-        // ✅ Get User Roles
+        //  Get User Roles
         [HttpGet("{id}/roles")]
         public async Task<IActionResult> GetUserRoles(string id)
         {
@@ -66,7 +66,7 @@ namespace FurnitureStore.API.Controllers
             return Ok(roles);
         }
 
-        // ✅ Assign Role
+        //  Assign(add new role) Role
         [HttpPost("{id}/roles/assign")]
         public async Task<IActionResult> AssignRole(string id, [FromQuery] string role)
         {
@@ -77,7 +77,7 @@ namespace FurnitureStore.API.Controllers
             return Ok($"Role '{role}' assigned successfully.");
         }
 
-        // ✅ Remove Role
+        //  Remove Role
         [HttpPost("{id}/roles/remove")]
         public async Task<IActionResult> RemoveRole(string id, [FromQuery] string role)
         {

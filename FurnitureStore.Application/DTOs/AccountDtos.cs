@@ -42,6 +42,12 @@ namespace FurnitureStore.Application.DTOs
         public bool Succeeded { get; set; }
         public IEnumerable<string> Errors { get; set; } = new List<string>();
         public UserDto? User { get; set; }
+
+
+
+        public string? Token { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? Expiration { get; set; }
     }
     public class LoginResultDto
     {
@@ -50,5 +56,11 @@ namespace FurnitureStore.Application.DTOs
         public DateTime? Expiration { get; set; }
         public UserDto? User { get; set; }
         public IEnumerable<string> Errors { get; set; } = new List<string>();
+
+        public string? RefreshToken { get; set; }
+    }
+    public class LogoutDto
+    {
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }

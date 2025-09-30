@@ -1,12 +1,15 @@
 ﻿using FurnitureStore.Application.DTOs;
 using FurnitureStore.Application.IServices;
+using FurnitureStore.Application.Services;
 using FurnitureStore.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 public class UserService : IUserService
@@ -14,12 +17,16 @@ public class UserService : IUserService
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _config;
+    private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config)
+    public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config,IRefreshTokenService refreshTokenService,IHttpContextAccessor httpContextAccessor)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _config = config;
+        _refreshTokenService = refreshTokenService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     #region Auth
@@ -52,6 +59,23 @@ public class UserService : IUserService
         }
 
         await _userManager.AddToRoleAsync(user, role);
+        // --- generate access token ---
+        var roles = await _userManager.GetRolesAsync(user);
+        var jwt = GenerateJwtToken(user, roles);
+
+        // --- generate refresh token and store it ---
+        var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        var newRefresh = new NewRefreshTokenDto
+        {
+            Token = refreshTokenString,
+            Expires = DateTime.UtcNow.AddDays(7), // change lifetime as needed
+            CreatedByIp = ip,
+            UserId = user.Id
+        };
+
+        await _refreshTokenService.GenerateRefreshTokenAsync(newRefresh);
 
         return new RegisterResultDto
         {
@@ -61,10 +85,15 @@ public class UserService : IUserService
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
-                PhoneNumber = user.PhoneNumber
-            }
+                PhoneNumber = user.PhoneNumber,
+                Roles = roles
+            },
+            Token = jwt.Token,
+            Expiration = jwt.Expiration,
+            RefreshToken = refreshTokenString
         };
     }
+    
 
     public async Task<LoginResultDto> LoginAsync(LoginDto loginDto)
     {
@@ -81,12 +110,27 @@ public class UserService : IUserService
 
         var roles = await _userManager.GetRolesAsync(user);
         var token = GenerateJwtToken(user, roles);
+        // rotate/create refresh token
+        var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var newRefresh = new NewRefreshTokenDto
+        {
+            Token = refreshTokenString,
+            Expires = DateTime.UtcNow.AddDays(7),
+            CreatedByIp = ip,
+            UserId = user.Id
+        };
+
+        // optionally: you could call ReplaceRefreshTokenAsync if you want to revoke old token
+        await _refreshTokenService.GenerateRefreshTokenAsync(newRefresh);
+
 
         return new LoginResultDto
         {
             Succeeded = true,
             Token = token.Token,
             Expiration = token.Expiration,
+            RefreshToken = refreshTokenString,
             User = new UserDto
             {
                 Id = user.Id,

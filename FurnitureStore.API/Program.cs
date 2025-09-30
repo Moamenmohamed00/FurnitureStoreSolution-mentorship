@@ -24,7 +24,9 @@ builder.Services.AddControllers();
 
 // 1. DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options=>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found."))
+    );
 
 //2.Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
@@ -56,6 +58,7 @@ options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Jwt")["Key"]))
     };
 });
+// 4. Dependency Injection for Repositories and Services
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -64,6 +67,9 @@ builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICartItemService, CartItemService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+//builder.Services.AddScoped<IHttpContextAccessor, HttpContextAccessor>();// To access HttpContext in services ip address
+builder.Services.AddHttpContextAccessor();
 // 5. Swagger with JWT support
 builder.Services.AddSwaggerGen(c =>
 {
@@ -77,9 +83,8 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "أدخل JWT token بهذا الشكل: Bearer {token}"
+        Description = "Enter 'Bearer' [space] and then your valid token.\\r\\n\\r\\nExample: \\\"Bearer abc123\\"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
