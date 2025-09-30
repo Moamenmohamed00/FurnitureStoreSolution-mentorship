@@ -22,9 +22,19 @@ namespace FurnitureStore.API.Controllers
 
             var result = await _userService.RegisterAsync(registerDto, role);
             if (!result.Succeeded) 
-                return BadRequest(result.Errors); 
-
-            return Ok("User registered successfully.");
+                return BadRequest(result.Errors);
+            var dto = new RegisterResultDto
+            {
+                User = result.User,
+                Succeeded = result.Succeeded,
+                Errors = result.Errors.ToArray()
+            };
+            // return Ok($"{dto}\n User registered successfully.");
+            return Ok(new
+            {
+                Message = "User registered successfully.",
+                Data = dto
+            });
         }
 
         [HttpPost("login")]

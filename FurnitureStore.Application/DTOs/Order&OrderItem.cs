@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FurnitureStore.Application.DTOs
@@ -16,6 +17,7 @@ namespace FurnitureStore.Application.DTOs
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
         public int OrderId { get; set; }
+       // [JsonConverter(typeof(JsonStringEnumConverter))]
         public OrderStatus OrderStatus { get; set; }
     }
     public class CreateOrderItemDto
@@ -48,6 +50,7 @@ namespace FurnitureStore.Application.DTOs
         public string ShippingState { get; set; }
         public string? ShippingZipCode { get; set; }
         public Country ShippingCountry { get; set; }
+        //[JsonConverter(typeof(JsonStringEnumConverter))]
 
         public PaymentMethod PaymentMethod { get; set; }
 

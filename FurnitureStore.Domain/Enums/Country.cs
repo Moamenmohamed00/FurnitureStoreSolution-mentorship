@@ -17,6 +17,7 @@ namespace FurnitureStore.Domain.Enums
         India,
         China,
         Japan,
-        Brazil
+        Brazil,
+        Egypt,
     }
 }

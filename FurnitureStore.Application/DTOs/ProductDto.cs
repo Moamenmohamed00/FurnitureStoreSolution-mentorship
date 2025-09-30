@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FurnitureStore.Application.DTOs
@@ -15,6 +16,7 @@ namespace FurnitureStore.Application.DTOs
         public string? Description { get; set; }
         public decimal Price { get; set; }
         public int Stock { get; set; }
+       // [JsonConverter(typeof(JsonStringEnumConverter))]
         public ProductColor Color { get; set; }
     }
 }
