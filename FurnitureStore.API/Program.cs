@@ -55,17 +55,19 @@ builder.Services.AddAuthentication(options => {
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
 
-        ValidIssuer = builder.Configuration.GetSection("Authentication:Jwt")["Issuer"],
-        ValidAudience = builder.Configuration.GetSection("Authentication:Jwt")["Audience"],
+        ValidIssuer = builder.Configuration.GetSection("Authentication:Jwt")["Issuer"]?? throw new InvalidOperationException("Jwt Issuer is not configured."),
+        ValidAudience = builder.Configuration.GetSection("Authentication:Jwt")["Audience"]?? throw new InvalidOperationException("Jwt Audience is not configured."),
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Authentication:Jwt")["Key"]))
+            Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Authentication:Jwt")["Key"]?? throw new InvalidOperationException("Jwt Key is not configured.")))
     };
 })
 .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"]
+        ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
         ?? throw new InvalidOperationException("Google ClientId is not configured.");
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
+        ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
         ?? throw new InvalidOperationException("Google ClientSecret is not configured.");
    /* options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
     options.ClaimActions.MapJsonKey("urn:google:locale", "locale", "string");
