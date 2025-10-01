@@ -17,14 +17,6 @@ namespace FurnitureStore.Application.IServices
         Task<IEnumerable<OrderDto>> GetOrdersByUserIdAsync(string userId);
         Task<IEnumerable<OrderDto>> GetAllOrdersAsync();
         Task<bool> DeleteOrderAsync(int orderId);
-
-        // Order Items
-        Task<bool> AddOrderItemAsync(int orderId, CreateOrderItemDto orderItemDto);
-        Task<bool> DeleteOrderItemAsync(int id);
-        Task<bool> UpdateOrderItemQuantityAsync(int orderItemId, int newQuantity);
-        Task<IEnumerable<OrderItemDto>> GetOrderItemsByOrderIdAsync(int orderId);
-        Task<OrderItemDto?> GetOrderItemByIdAsync(int orderItemId);
-        Task<bool> UpdateOrderItemAsync(int orderItemId, CreateOrderItemDto updateOrderItemDto);
-        Task<bool> OrderExistsAsync(int orderId);
+         Task<IEnumerable<OrderItemDto>> GetOrderItemsByOrderIdAsync(int orderId);
     }
 }

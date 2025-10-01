@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ namespace FurnitureStore.Domain.Entities
 {
     public class User: IdentityUser
     {
+        [Required]
         public string FullName { get; set; }
         public DateTime CreatedAt { get; set; }= DateTime.UtcNow;
         public ICollection<Order> Orders { get; set; } = new List<Order>();

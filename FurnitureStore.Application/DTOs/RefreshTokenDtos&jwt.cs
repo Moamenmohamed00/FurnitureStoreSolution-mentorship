@@ -25,4 +25,10 @@ namespace FurnitureStore.Application.DTOs
         public string CreatedByIp { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
     }
+    public class JwtAuthResultDto
+    {
+        public string Token { get; set; } = string.Empty;
+        public DateTime Expiration { get; set; }
+    }
+
 }

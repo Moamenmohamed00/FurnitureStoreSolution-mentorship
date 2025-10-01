@@ -1,5 +1,6 @@
 ﻿using FurnitureStore.Application.DTOs;
 using FurnitureStore.Application.IServices;
+using FurnitureStore.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,9 +10,9 @@ namespace FurnitureStore.API.Controllers
     [Route("api/[controller]")]
     public class OrderItemController : Controller
     {
-        private readonly IOrderService _orderItemService;
+        private readonly IOrderItemService _orderItemService;
 
-        public OrderItemController(IOrderService orderItemService)
+        public OrderItemController(IOrderItemService orderItemService)
         {
             _orderItemService = orderItemService;
         }
@@ -45,10 +46,11 @@ namespace FurnitureStore.API.Controllers
 
             return Ok("Order item created successfully.");
         }
-
         // Corrected the casing of the type name to match the expected convention
-        [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult> Update(int id, [FromBody] CreateOrderItemDto dto)
         {
 
@@ -68,11 +70,27 @@ namespace FurnitureStore.API.Controllers
 
             return Ok("Order item updated successfully.");
 
-        }
+        }
+
+
+       
+
+
+        // PUT: api/order/items/{itemId}
+        [HttpPut("items/{itemId}")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> UpdateItemQuantity(int itemId, [FromQuery] int newQuantity)
+        {
+            var success = await _orderItemService.UpdateOrderItemQuantityAsync(itemId, newQuantity);
+            if (!success)
+                return BadRequest("Failed to update item quantity.");
+
+            return Ok("Item quantity updated successfully.");
+        }
 
         // DELETE: api/orderitem/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Customer,Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _orderItemService.DeleteOrderItemAsync(id);

@@ -19,14 +19,16 @@ public class UserService : IUserService
     private readonly IConfiguration _config;
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IJwtService _jwtService;
 
-    public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config,IRefreshTokenService refreshTokenService,IHttpContextAccessor httpContextAccessor)
+    public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config,IRefreshTokenService refreshTokenService,IHttpContextAccessor httpContextAccessor,IJwtService jwtService)
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _config = config;
+        _config = config; 
         _refreshTokenService = refreshTokenService;
         _httpContextAccessor = httpContextAccessor;
+        _jwtService = jwtService;
     }
 
     #region Auth
@@ -61,7 +63,7 @@ public class UserService : IUserService
         await _userManager.AddToRoleAsync(user, role);
         // --- generate access token ---
         var roles = await _userManager.GetRolesAsync(user);
-        var jwt = GenerateJwtToken(user, roles);
+        var jwt = _jwtService.GenerateJwtToken(user, roles);
 
         // --- generate refresh token and store it ---
         var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -109,7 +111,7 @@ public class UserService : IUserService
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var token = GenerateJwtToken(user, roles);
+        var token = _jwtService.GenerateJwtToken(user, roles);
         // rotate/create refresh token
         var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
@@ -248,35 +250,5 @@ public class UserService : IUserService
     }
     #endregion
 
-    #region JWT
-    private (string Token, DateTime Expiration) GenerateJwtToken(User user, IList<string> roles)
-    {
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.UserName ?? ""),
-            new Claim(ClaimTypes.Email, user.Email ?? "")
-        };
-
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var expiration = DateTime.UtcNow.AddHours(2);
-
-        var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
-            claims: claims,
-            expires: expiration,
-            signingCredentials: creds
-        );
-
-        return (new JwtSecurityTokenHandler().WriteToken(token), expiration);
-    }
-    #endregion
+  
 }

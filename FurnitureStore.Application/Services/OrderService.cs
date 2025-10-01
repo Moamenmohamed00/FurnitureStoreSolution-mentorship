@@ -6,6 +6,7 @@ using FurnitureStore.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,27 +19,16 @@ namespace FurnitureStore.Application.Services
         {
             this._unitOfWork = unitOfWork;
         }
-        public async Task<bool> AddOrderItemAsync(int orderId, CreateOrderItemDto orderItemDto)
-        {
-            var order =await _unitOfWork.Orders.GetByIdAsync(orderId);
-            if (order == null) return false;
-            // Map CreateOrderItemDto to OrderItem entity
-            var orderItem = new Domain.Entities.OrderItem
-            {
-                OrderId = orderId,
-                ProductId = orderItemDto.ProductId,
-                Quantity = orderItemDto.Quantity,
-                UnitPrice = orderItemDto.UnitPrice,
-                OrderStatus=OrderStatus.pending
-            };
-            order.TotalPrice += orderItem.UnitPrice * orderItem.Quantity;
-            await _unitOfWork.OrderItems.AddAsync(orderItem);
-            await _unitOfWork.CompleteAsync();
-            return true;
-        }
+
 
         public async Task<OrderDto> CreateOrderAsync(CreateOrderDto createOrderDto)
         {
+            if (createOrderDto == null)
+                throw new ArgumentNullException(nameof(createOrderDto));
+
+            if (createOrderDto.OrderItems == null || !createOrderDto.OrderItems.Any())
+                throw new Exception("Order must contain at least one item");
+
             var order = new Order
             {
                 UserId = createOrderDto.UserId,
@@ -49,107 +39,119 @@ namespace FurnitureStore.Application.Services
                 ShippingZipCode = createOrderDto.ShippingZipCode,
                 ShippingCountry = createOrderDto.ShippingCountry,
                 paymentMethod = createOrderDto.PaymentMethod,
+                TotalPrice = 0,
+                 OrderItems = new List<OrderItem>()
             };
-            foreach(var item in createOrderDto.OrderItems)
+
+            decimal computedTotal = 0;
+            foreach (var item in createOrderDto.OrderItems)
             {
+                if (item.Quantity <= 0)
+                    throw new Exception($"Quantity for product {item.ProductId} must be greater than zero");
+
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                if (product == null)
+                    throw new Exception($"Product with Id {item.ProductId} not found");
+
+                if (item.Quantity > product.Stock)
+                    throw new Exception($"Not enough stock for product {product.Name}. Available: {product.Stock}, requested: {item.Quantity}");
+
                 var orderItem = new OrderItem
                 {
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    OrderStatus=OrderStatus.pending
+                    UnitPrice = product.Price,
+                    OrderStatus = OrderStatus.pending
                 };
+
                 order.OrderItems.Add(orderItem);
-                order.TotalPrice += orderItem.UnitPrice * orderItem.Quantity;
+                computedTotal += orderItem.UnitPrice * orderItem.Quantity;
+
+                // تحديث المخزون بعد الخصم
+                product.Stock -= item.Quantity;
+                _unitOfWork.Products.Update(product);
             }
-           await _unitOfWork.Orders.AddAsync(order);
-           await _unitOfWork.CompleteAsync();
-            // Map Order entity to OrderDto
+
+            order.TotalPrice = computedTotal;
+
+            await _unitOfWork.Orders.AddAsync(order);
+            await _unitOfWork.CompleteAsync();
+
             return await GetOrderByIdAsync(order.Id) ?? throw new Exception("Error in creating order");
         }
 
+
         public async Task<bool> DeleteOrderAsync(int orderId)
         {
-            var order =await _unitOfWork.Orders.GetByIdAsync(orderId);
+            var order = await _unitOfWork.Orders.GetByIdAsync(orderId, o => o.OrderItems);
             if (order == null) return false;
+            // Restock items before deleting the order
+            foreach (var item in order.OrderItems)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId ?? 0);
+                if (product != null)
+                {
+                    product.Stock += item.Quantity;
+                    _unitOfWork.Products.Update(product);
+                }
+            }
            await _unitOfWork.Orders.DeleteAsync(orderId);
             await _unitOfWork.CompleteAsync();
             return true;
         }
 
-        public async Task<bool> DeleteOrderItemAsync(int id)
-        {
-            var orderItem = await _unitOfWork.OrderItems.GetByIdAsync(id);
-            if (orderItem == null) return false;
-
-            // Use null-coalescing operator to handle nullable OrderId
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderItem.OrderId ?? 0);
-            if (order == null) return false;
-
-            order.TotalPrice -= orderItem.UnitPrice * orderItem.Quantity;
-            await _unitOfWork.OrderItems.DeleteAsync(id);
-            await _unitOfWork.CompleteAsync();
-            return true;
-        }
+        
 
         public async Task<IEnumerable<OrderDto>> GetAllOrdersAsync()
         {
-            var orders = await _unitOfWork.Orders.GetAllAsync();
+            var orders = await _unitOfWork.Orders
+                .Query()
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .ToListAsync();
 
-            // Map the list of Order entities to a list of OrderDto
-            var orderDtos = orders.Select(order => new OrderDto
-            {
-                Id = order.Id,
-                UserId = order.UserId??"",
-                OrderDate = order.OrderDate,
-                TotalPrice = order.TotalPrice,
-                ShippingStreet = order.ShippingStreet,
-                ShippingCity = order.ShippingCity,
-                ShippingState = order.ShippingState,
-                ShippingZipCode = order.ShippingZipCode,
-                ShippingCountry = order.ShippingCountry,
-                PaymentMethod = order.paymentMethod,
-                OrderItems = order.OrderItems.Select(item => new OrderItemDto
-                {
-                    Id = item.Id,
-                    ProductId = item.ProductId??0,
-                    ProductName = item.Product?.Name ?? string.Empty,
-                    OrderId = item.OrderId??0,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    TotalPrice = item.TotalPrice,
-                    OrderStatus = item.OrderStatus
-                }).ToList()
-            });
-
-            return orderDtos;
+            return orders.Select(MapOrderToDto);
         }
-        public async Task<bool> OrderExistsAsync(int orderId)
-        {
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-            return order != null;
-        }
+        
         public async Task<OrderDto?> GetOrderByIdAsync(int orderId)
         {
+            var order = await _unitOfWork.Orders
+                .Query()
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
 
-                var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-                if (order == null) return null;
-                return MapOrderToDto(order);
-           
+            if (order == null) return null;
+            return MapOrderToDto(order);
         }
 
-        public async Task<IEnumerable<OrderItemDto>> GetOrderItemsByOrderIdAsync(int orderId)
-        {
-
-                var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-                if (order == null) return Enumerable.Empty<OrderItemDto>();
-                return order.OrderItems.Select(MapOrderItemToDto);
-        }
+      
 
         public async Task<IEnumerable<OrderDto>> GetOrdersByUserIdAsync(string userId)
         {
                 var orders = await _unitOfWork.Orders.FindAsync(o => o.UserId == userId);
+                foreach (var order in orders)
+                {
+                    if (order.OrderItems == null) continue;
+                    foreach (var item in order.OrderItems)
+                    {
+                        if (item.Product == null && item.ProductId.HasValue)
+                        {
+                            item.Product = await _unitOfWork.Products.GetByIdAsync(item.ProductId.Value);
+                        }
+                    }
+                }
                 return orders.Select(MapOrderToDto);
+        }
+  public async Task<IEnumerable<OrderItemDto>> GetOrderItemsByOrderIdAsync(int orderId)
+        {
+            var order = await _unitOfWork.Orders
+                .Query()
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null) return Enumerable.Empty<OrderItemDto>();
+            return (order.OrderItems ?? new List<OrderItem>()).Select(MapOrderItemToDto);
         }
 
         public async Task<bool> UpdateOrderAsync(int id, CreateOrderDto updateOrderDto)
@@ -167,47 +169,9 @@ namespace FurnitureStore.Application.Services
         return true;
         }
 
-        public async Task<bool> UpdateOrderItemQuantityAsync(int orderItemId, int newQuantity)
-        {
-            var orderItem =await  _unitOfWork.OrderItems.GetByIdAsync(orderItemId);
-            if (orderItem == null || newQuantity <= 0) return false;
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderItem.OrderId ?? 0);
-            if (order == null) return false;
-            order.TotalPrice -= orderItem.UnitPrice * orderItem.Quantity;
-            orderItem.Quantity = newQuantity;
-            order.TotalPrice += orderItem.UnitPrice * orderItem.Quantity;
-            _unitOfWork.OrderItems.Update(orderItem);
-            _unitOfWork.Orders.Update(order);
-            await _unitOfWork.CompleteAsync();
-            return true;
-        }
-        public async Task<bool> UpdateOrderItemAsync(int orderItemId, CreateOrderItemDto updateOrderItemDto)
-        {
-            var orderItem = await _unitOfWork.OrderItems.GetByIdAsync(orderItemId);
-            if (orderItem == null) return false;
-
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderItem.OrderId ?? 0);
-            if (order == null) return false;
-
-            // تعديل السعر الإجمالي
-            order.TotalPrice -= orderItem.UnitPrice * orderItem.Quantity;
-
-            orderItem.ProductId = updateOrderItemDto.ProductId;
-            orderItem.Quantity = updateOrderItemDto.Quantity;
-            orderItem.UnitPrice = updateOrderItemDto.UnitPrice;
-
-            order.TotalPrice += orderItem.UnitPrice * orderItem.Quantity;
-
-            _unitOfWork.OrderItems.Update(orderItem);
-            _unitOfWork.Orders.Update(order);
-            await _unitOfWork.CompleteAsync();
-            return true;
-        }
-        public async Task<OrderItemDto?> GetOrderItemByIdAsync(int orderItemId)
-        {
-            var item = await _unitOfWork.OrderItems.GetByIdAsync(orderItemId);
-            return item == null ? null : MapOrderItemToDto(item);
-        }
+        
+        
+      
         private OrderItemDto MapOrderItemToDto(OrderItem item)
         {
             return new OrderItemDto
@@ -218,7 +182,7 @@ namespace FurnitureStore.Application.Services
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
                 TotalPrice = item.TotalPrice,
-                OrderId = item.OrderId ?? 0,
+                OrderId = item.OrderId,
                 OrderStatus = item.OrderStatus
             };
         }
@@ -236,7 +200,7 @@ namespace FurnitureStore.Application.Services
                 ShippingZipCode = order.ShippingZipCode,
                 ShippingCountry = order.ShippingCountry,
                 PaymentMethod = order.paymentMethod,
-                OrderItems = order.OrderItems.Select(MapOrderItemToDto).ToList()
+                OrderItems = (order.OrderItems ?? new List<OrderItem>()).Select(MapOrderItemToDto).ToList()
             };
         }
     }

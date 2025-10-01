@@ -5,6 +5,7 @@ using FurnitureStore.Domain.Enums;
 using FurnitureStore.Infrastructure.Repositories;
 using FurnitureStore.Persistence.DbContext;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,12 +13,14 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using DotNetEnv;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ServiceStack.Text;
 // Add services to the container
 
 var builder = WebApplication.CreateBuilder(args);
-
+DotNetEnv.Env.Load();
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -40,9 +43,9 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 // 3. JWT Authentication
 
-builder.Services.AddAuthentication(options => { 
-options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+builder.Services.AddAuthentication(options => {
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -52,11 +55,37 @@ options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
 
-        ValidIssuer = builder.Configuration.GetSection("Jwt")["Issuer"],
-        ValidAudience = builder.Configuration.GetSection("Jwt")["Audience"],
+        ValidIssuer = builder.Configuration.GetSection("Authentication:Jwt")["Issuer"],
+        ValidAudience = builder.Configuration.GetSection("Authentication:Jwt")["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Jwt")["Key"]))
+            Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Authentication:Jwt")["Key"]))
     };
+})
+.AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"]
+        ?? throw new InvalidOperationException("Google ClientId is not configured.");
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
+        ?? throw new InvalidOperationException("Google ClientSecret is not configured.");
+   /* options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
+    options.ClaimActions.MapJsonKey("urn:google:locale", "locale", "string");
+    options.SaveTokens = true;
+    options.Events.OnCreatingTicket = ctx =>
+    {
+        var picture = ctx.User.GetProperty("picture").GetString();
+        if (!string.IsNullOrEmpty(picture))
+        {
+            ctx.Identity.AddClaim(new System.Security.Claims.Claim("picture", picture));
+        }
+        var locale = ctx.User.GetProperty("locale").GetString();
+        if (!string.IsNullOrEmpty(locale))
+        {
+            options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
+                ?? throw new InvalidOperationException("Google ClientSecret is not configured.");
+            ctx.Identity.AddClaim(new System.Security.Claims.Claim("locale", locale));
+        }
+        return Task.CompletedTask;
+    };*/
 });
 // 4. Dependency Injection for Repositories and Services
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -68,6 +97,8 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICartItemService, CartItemService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IOrderItemService, OrderItemService>();
 //builder.Services.AddScoped<IHttpContextAccessor, HttpContextAccessor>();// To access HttpContext in services ip address
 builder.Services.AddHttpContextAccessor();
 // 5. Swagger with JWT support

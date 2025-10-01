@@ -9,11 +9,12 @@ namespace FurnitureStore.Application.DTOs
 {
     public class RegisterDto
     {
-        [Required]
-        [MaxLength(100)]
+        
+        [Required,MaxLength(100)]
+        [RegularExpression("^[a-zA-Z]", ErrorMessage = "Name must contain only letters.")]
         public string FullName { get; set; } = string.Empty;
-        [Required]
-        [EmailAddress]
+        
+        [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;
         [Phone]
         public string PhoneNumber { get; set; } = string.Empty;
@@ -23,7 +24,7 @@ namespace FurnitureStore.Application.DTOs
         public string Password { get; set; } = string.Empty;
         [Required]
         [Compare("Password", ErrorMessage = "Passwords do not match.")]
-        public string PasswordConfirmed { get; set; }
+        public string PasswordConfirmed { get; set; } = string.Empty;
         public CreateAddressDto? Address { get; set; }
     }
 
@@ -31,7 +32,7 @@ namespace FurnitureStore.Application.DTOs
     {
         [Required]
         [EmailAddress]
-        public string Email { get; set; }
+        public required string Email { get; set; }
         [Required]
         [DataType(DataType.Password)]
         [StringLength(100, MinimumLength = 6)] 

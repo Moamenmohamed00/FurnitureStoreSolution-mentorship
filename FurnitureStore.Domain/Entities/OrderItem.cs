@@ -17,7 +17,8 @@ namespace FurnitureStore.Domain.Entities
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice => UnitPrice * Quantity;
-        public int? OrderId { get; set; }
+        [Required]
+        public int OrderId { get; set; }
         public Order? Order { get; set; }
         public OrderStatus OrderStatus { get; set; } = OrderStatus.pending;
     }

@@ -23,7 +23,7 @@ namespace FurnitureStore.Application.Services
             {
                 Name = createProductDto.Name,
                 Description = createProductDto.Description,
-                Price = createProductDto.Price,
+                Price = createProductDto.UnitPrice,
                 Stock = createProductDto.Stock,
                 Color = createProductDto.Color,
             };
@@ -38,7 +38,7 @@ namespace FurnitureStore.Application.Services
                 Description = product.Description,
                 Price = product.Price,
                 Stock = product.Stock,
-                Color = product.Color ?? default(ProductColor) // Explicitly handle nullable ProductColor
+                Color = product.Color// ?? default(ProductColor) // Explicitly handle nullable ProductColor
             };
         }
 
@@ -65,7 +65,7 @@ namespace FurnitureStore.Application.Services
                 Description = p.Description,
                 Price = p.Price,
                 Stock = p.Stock,
-                Color = p.Color ?? default(ProductColor) // Explicitly handle nullable ProductColor
+                Color = p.Color //?? default(ProductColor) // Explicitly handle nullable ProductColor
             });
         }
 
@@ -83,7 +83,7 @@ namespace FurnitureStore.Application.Services
                 Description = product.Description,
                 Price = product.Price,
                 Stock = product.Stock,
-                Color = product.Color ?? default(ProductColor) // Explicitly handle nullable ProductColor
+                Color = product.Color //?? default(ProductColor) // Explicitly handle nullable ProductColor
             };
         }
 
@@ -96,7 +96,7 @@ namespace FurnitureStore.Application.Services
             }
             product.Name = createProductDto.Name;
             product.Description = createProductDto.Description;
-            product.Price = createProductDto.Price;
+            product.Price = createProductDto.UnitPrice;
             product.Stock = createProductDto.Stock;
             product.Color = createProductDto.Color;
             _unitOfWork.Products.Update(product);

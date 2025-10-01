@@ -17,6 +17,6 @@ namespace FurnitureStore.Application.DTOs
         public decimal Price { get; set; }
         public int Stock { get; set; }
        // [JsonConverter(typeof(JsonStringEnumConverter))]
-        public ProductColor Color { get; set; }
+        public string? Color { get; set; }
     }
 }

@@ -42,6 +42,22 @@ namespace FurnitureStore.Infrastructure.Repositories
         {
          return await  _context.Set<T>().FindAsync(id);
         }
+        public IQueryable<T> Query()
+        {
+            return _context.Set<T>().AsQueryable();
+        }
+        //overload with includes
+        public async Task<T?> GetByIdAsync(int id, params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _context.Set<T>();
+
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+
+            return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
+        }
 
         public void Update(T entity)
         {

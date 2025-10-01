@@ -25,7 +25,7 @@ namespace FurnitureStore.Domain.Entities
         // [ForeignKey("Brand")]
         public int? BrandId { get; set; }
         public Brand? Brand { get; set; }
-        public ProductColor? Color { get; set; }
+        public string? Color { get; set; }
         //[ForeignKey("CreatedBy")]
         public string? CreatedByUserId { get; set; }
         public User? CreatedBy { get; set; }
