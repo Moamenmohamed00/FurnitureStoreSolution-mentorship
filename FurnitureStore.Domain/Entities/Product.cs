@@ -1,6 +1,7 @@
 ﻿using FurnitureStore.Domain.Enums;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
@@ -20,10 +21,12 @@ namespace FurnitureStore.Domain.Entities
         //public string? UserId { get; set; }
         //public User? User { get; set; }
         //[ForeignKey("Category")]
-        public int? CategoryId { get; set; }
+        [Required]
+        public int CategoryId { get; set; }
         public Category? Category { get; set; }
         // [ForeignKey("Brand")]
-        public int? BrandId { get; set; }
+        [Required]
+        public int BrandId { get; set; }
         public Brand? Brand { get; set; }
         public string? Color { get; set; }
         //[ForeignKey("CreatedBy")]

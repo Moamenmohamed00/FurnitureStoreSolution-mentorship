@@ -129,7 +129,7 @@ namespace FurnitureStore.Application.Services
 
         public async Task<IEnumerable<OrderDto>> GetOrdersByUserIdAsync(string userId)
         {
-                var orders = await _unitOfWork.Orders.FindAsync(o => o.UserId == userId);
+                var orders = await _unitOfWork.Orders.Query().Include(o=>o.OrderItems).ThenInclude(oi=>oi.Product).Where(o => o.UserId == userId).ToListAsync();
                 foreach (var order in orders)
                 {
                     if (order.OrderItems == null) continue;

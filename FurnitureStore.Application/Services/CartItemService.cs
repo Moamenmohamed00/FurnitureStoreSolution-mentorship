@@ -1,6 +1,7 @@
 ﻿using FurnitureStore.Application.DTOs;
 using FurnitureStore.Application.IServices;
 using FurnitureStore.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,14 +51,21 @@ namespace FurnitureStore.Application.Services
 
         public async Task<IEnumerable<CartItemDto>> GetCartItemsByUserAsync(string userId)
         {
-            var items = await _unitOfWork.CartItems.FindAsync(c => c.UserId == userId);
+            var items = await _unitOfWork.CartItems
+        .Query()
+        .Include(ci => ci.Product)
+        .Where(c => c.UserId == userId)
+        .ToListAsync();
+
             return items.Select(ci => new CartItemDto
             {
                 Id = ci.Id,
                 ProductName = ci.Product?.Name ?? "",
                 ProductId = ci.ProductId??0,
                 Quantity = ci.Quantity,
-                UserId = ci.UserId
+                UserId = ci.UserId,
+                TotalPrice= (ci.Product?.Price ?? 0) * ci.Quantity,
+                UnitPrice= ci.Product?.Price ?? 0
             });
         }
 

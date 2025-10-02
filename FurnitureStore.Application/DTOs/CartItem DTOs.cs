@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FurnitureStore.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,5 +23,17 @@ namespace FurnitureStore.Application.DTOs
         public string ProductName { get; set; } // للعرض
         public int Quantity { get; set; }
         public string? UserId { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal UnitPrice { get; set; }
     }
+    public class CheckoutDto
+    {
+        public string ShippingStreet { get; set; }
+        public string ShippingCity { get; set; }
+        public string ShippingState { get; set; }
+        public string ShippingZipCode { get; set; }
+        public Country ShippingCountry { get; set; }
+        public PaymentMethod PaymentMethod { get; set; } // cashOnDelivery, creditCard...
+    }
+
 }

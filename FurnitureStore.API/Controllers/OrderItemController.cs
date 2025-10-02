@@ -19,6 +19,7 @@ namespace FurnitureStore.API.Controllers
 
         // GET: api/orderitem/{id}
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(int id)
         {
             var item = await _orderItemService.GetOrderItemByIdAsync(id);
@@ -53,28 +54,15 @@ namespace FurnitureStore.API.Controllers
 
         public async Task<IActionResult> Update(int id, [FromBody] CreateOrderItemDto dto)
         {
-
             if (!ModelState.IsValid)
-
                 return BadRequest(ModelState);
-
-
-
             var success = await _orderItemService.UpdateOrderItemAsync(id, dto);
-
             if (!success)
-
                 return NotFound("Order item not found.");
-
-
-
-            return Ok("Order item updated successfully.");
+            return Ok(new {message= "Order item updated successfully.",
+           data= dto});
 
         }
-
-
-       
-
 
         // PUT: api/order/items/{itemId}
         [HttpPut("items/{itemId}")]
@@ -85,7 +73,8 @@ namespace FurnitureStore.API.Controllers
             if (!success)
                 return BadRequest("Failed to update item quantity.");
 
-            return Ok("Item quantity updated successfully.");
+            return Ok(new { message = "Item quantity updated successfully.",
+            quatity = newQuantity });
         }
 
         // DELETE: api/orderitem/{id}

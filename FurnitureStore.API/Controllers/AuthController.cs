@@ -1,6 +1,10 @@
 ﻿using FurnitureStore.Application.DTOs;
 using FurnitureStore.Application.IServices;
 using FurnitureStore.Application.Services;
+using FurnitureStore.Domain.Entities;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +18,16 @@ namespace FurnitureStore.API.Controllers
     {
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly IUserService _userService;
-        public AuthController(IUserService userService,IRefreshTokenService RefreshTokenService)
+        private readonly SignInManager<User> _signInManager;
+        private readonly UserManager<User> _userManager;
+        private readonly IJwtService _jwtService ;
+        public AuthController(IUserService userService,IRefreshTokenService RefreshTokenService,UserManager<User> userManager,SignInManager<User> signInManager,IJwtService jwtService)
         {
             _userService = userService;
             _refreshTokenService =  RefreshTokenService;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _jwtService =  jwtService;
         }
 
         [HttpPost("register")]
@@ -84,47 +94,64 @@ namespace FurnitureStore.API.Controllers
 
             return Ok("Logged out successfully.");
         }
-       /* [HttpGet("external-login")]
-        public IActionResult ExternalLogin(string provider, string returnUrl = "/")
+        [HttpGet("google-login")]
+        public IActionResult GoogleLogin()
         {
-            var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            return Challenge(properties, provider);
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = Url.Action("GoogleResponse")
+            };
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
-        [HttpGet("external-login-callback")]
-        public async Task<IActionResult> ExternalLoginCallback(string? returnUrl = null, string? remoteError = null)
+
+        [HttpGet("google-response")]
+        public async Task<IActionResult> GoogleResponse()
         {
-            if (remoteError != null)
-                return BadRequest($"Error from external provider: {remoteError}");
+            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            var info = await _signInManager.GetExternalLoginInfoAsync();
-            if (info == null)
-                return RedirectToAction("Login");
+            if (!result.Succeeded)
+                return BadRequest("Google authentication failed.");
 
-            // جرّب تسجيل دخول
-            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+            var claims = result.Principal.Identities
+                .FirstOrDefault()?.Claims.Select(claim =>
+                    new { claim.Type, claim.Value });
 
-            if (result.Succeeded)
+            // email من جوجل
+            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+
+            // لو المستخدم مش موجود في Identity، اعمله Create
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
             {
-                return Redirect(returnUrl ?? "/");
-            }
-            else
-            {
-                // المستخدم أول مرة
-                var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-                var user = new ApplicationUser { UserName = email, Email = email };
-
-                var createResult = await _userManager.CreateAsync(user);
-                if (createResult.Succeeded)
+                user = new User
                 {
-                    // ربط الحساب الخارجي بالمستخدم
-                    await _userManager.AddLoginAsync(user, info);
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    return Redirect(returnUrl ?? "/set-local-password");
-                }
-                return BadRequest("Could not create user");
+                    UserName = email,
+                    Email = email,
+                    FullName = result.Principal.Identity?.Name ?? email
+                };
+                await _userManager.CreateAsync(user);
+                await _userManager.AddToRoleAsync(user, "Customer");
             }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = _jwtService.GenerateJwtToken(user, roles);
+
+            return Ok(new
+            {
+                Message = "Google login successful",
+                AccessToken = token.Token,
+                AccessTokenExpiration = token.Expiration,
+                User = new UserDto
+                {
+                    Id = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    Roles = roles
+                }
+            });
         }
+
+        /*
         [HttpPost("set-password")]
         public async Task<IActionResult> SetPassword(SetPasswordDto dto)
         {

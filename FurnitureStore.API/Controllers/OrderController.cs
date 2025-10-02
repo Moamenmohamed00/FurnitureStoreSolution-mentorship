@@ -20,7 +20,7 @@ namespace FurnitureStore.API.Controllers
 
         // POST: api/order
         [HttpPost]
-        [Authorize(Roles = "Customer,Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateOrderDto createOrderDto)
         {
             if (!ModelState.IsValid)
@@ -39,6 +39,7 @@ namespace FurnitureStore.API.Controllers
 
         // GET: api/order/{id}
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(int id)
         {
             var order = await _orderService.GetOrderByIdAsync(id);
@@ -76,7 +77,7 @@ namespace FurnitureStore.API.Controllers
 
         // PUT: api/order/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Customer,Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateOrderDto updateDto)
         {
             var success = await _orderService.UpdateOrderAsync(id, updateDto);
@@ -100,6 +101,7 @@ namespace FurnitureStore.API.Controllers
 
          // GET: api/order/{id}/items
         [HttpGet("{orderId}/items")]
+        [Authorize(Roles = "Admin,Customer")]
         public async Task<IActionResult> GetOrderItems(int orderId)
         {
             var items = await _orderService.GetOrderItemsByOrderIdAsync(orderId);

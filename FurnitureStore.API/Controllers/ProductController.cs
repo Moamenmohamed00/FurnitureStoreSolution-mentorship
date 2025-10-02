@@ -49,7 +49,11 @@ namespace FurnitureStore.API.Controllers
             if (created == null)
                 return BadRequest("Failed to create product.");
 
-            return Ok("Product created successfully.");
+            return Ok(new { 
+            message= "Product created successfully.",
+            data= created
+            });
+
         }
 
         // PUT: api/product/{id}

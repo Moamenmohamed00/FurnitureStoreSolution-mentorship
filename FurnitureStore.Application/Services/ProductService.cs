@@ -3,6 +3,7 @@ using FurnitureStore.Application.IServices;
 using FurnitureStore.Domain.Entities;
 using FurnitureStore.Domain.Enums;
 using FurnitureStore.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,14 @@ namespace FurnitureStore.Application.Services
         }
         public async Task<ProductDto> CreateProductAsync(CreateProductDto createProductDto)
         {
+            if (string.IsNullOrWhiteSpace(createProductDto.Name))
+                throw new ArgumentException("Product name is required.");
+
+            if (createProductDto.UnitPrice < 0)
+                throw new ArgumentException("Price cannot be negative.");
+
+            if (createProductDto.Stock < 0)
+                throw new ArgumentException("Stock cannot be negative.");
             var product = new Product
             {
                 Name = createProductDto.Name,
@@ -26,11 +35,17 @@ namespace FurnitureStore.Application.Services
                 Price = createProductDto.UnitPrice,
                 Stock = createProductDto.Stock,
                 Color = createProductDto.Color,
+               CategoryId=createProductDto.CategoryId,
+                BrandId=createProductDto.BrandId
             };
 
             await _unitOfWork.Products.AddAsync(product);
             await _unitOfWork.CompleteAsync();
-
+            product = await _unitOfWork.Products
+    .Query()
+    .Include(p => p.Category)
+    .Include(p => p.Brand)
+    .FirstOrDefaultAsync(p => p.Id == product.Id);
             return new ProductDto
             {
                 Id = product.Id,
@@ -38,13 +53,23 @@ namespace FurnitureStore.Application.Services
                 Description = product.Description,
                 Price = product.Price,
                 Stock = product.Stock,
-                Color = product.Color// ?? default(ProductColor) // Explicitly handle nullable ProductColor
+                Color = product.Color,// ?? default(ProductColor) // Explicitly handle nullable ProductColor
+                BrandId=product.BrandId,
+                CategoryId=product.CategoryId,
+                CategoryName=product.Category?.Name,
+                BrandName=product.Brand?.Name
+
             };
         }
 
         public async Task<bool> DeleteProductAsync(int id)
         {
             var product = await _unitOfWork.Products.GetByIdAsync(id);
+            product = await _unitOfWork.Products
+.Query()
+.Include(p => p.Category)
+.Include(p => p.Brand)
+.FirstOrDefaultAsync(p => p.Id == product.Id);
             if (product == null)
             {
                 return false;
@@ -57,7 +82,11 @@ namespace FurnitureStore.Application.Services
 
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync()
         {
-            var products = await _unitOfWork.Products.GetAllAsync();
+            var products =  _unitOfWork.Products
+    .Query()
+    .Include(p => p.Category)
+    .Include(p => p.Brand)
+    .ToList();
             return products.Select(p => new ProductDto
             {
                 Id = p.Id,
@@ -65,7 +94,12 @@ namespace FurnitureStore.Application.Services
                 Description = p.Description,
                 Price = p.Price,
                 Stock = p.Stock,
-                Color = p.Color //?? default(ProductColor) // Explicitly handle nullable ProductColor
+                Color = p.Color, //?? default(ProductColor) // Explicitly handle nullable ProductColor
+                CategoryName=p.Category?.Name,
+                BrandName=p.Brand?.Name,
+                BrandId=p.BrandId,
+                CategoryId=p.CategoryId
+
             });
         }
 
@@ -76,6 +110,11 @@ namespace FurnitureStore.Application.Services
             {
                 return null;
             }
+            product = await _unitOfWork.Products
+    .Query()
+    .Include(p => p.Category)
+    .Include(p => p.Brand)
+    .FirstOrDefaultAsync(p => p.Id == product.Id);
             return new ProductDto
             {
                 Id = product.Id,
@@ -83,7 +122,12 @@ namespace FurnitureStore.Application.Services
                 Description = product.Description,
                 Price = product.Price,
                 Stock = product.Stock,
-                Color = product.Color //?? default(ProductColor) // Explicitly handle nullable ProductColor
+                Color = product.Color, //?? default(ProductColor) // Explicitly handle nullable ProductColor
+                CategoryName=product.Category?.Name,
+                BrandName=product.Brand?.Name,
+                BrandId=product.BrandId,
+                CategoryId=product.CategoryId
+
             };
         }
 
@@ -99,6 +143,13 @@ namespace FurnitureStore.Application.Services
             product.Price = createProductDto.UnitPrice;
             product.Stock = createProductDto.Stock;
             product.Color = createProductDto.Color;
+            product.BrandId = createProductDto.BrandId;
+            product.CategoryId = createProductDto.CategoryId;
+            product = await _unitOfWork.Products
+    .Query()
+    .Include(p => p.Category)
+    .Include(p => p.Brand)
+    .FirstOrDefaultAsync(p => p.Id == product.Id);
             _unitOfWork.Products.Update(product);
             await _unitOfWork.CompleteAsync();
             return true;

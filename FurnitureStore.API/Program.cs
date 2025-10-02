@@ -63,11 +63,11 @@ builder.Services.AddAuthentication(options => {
 })
 .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
 {
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"]
-        ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+    options.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+         ?? builder.Configuration["Authentication:Google:ClientId"]
         ?? throw new InvalidOperationException("Google ClientId is not configured.");
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
-        ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
+    options.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
+         ?? builder.Configuration["Authentication:Google:ClientSecret"]
         ?? throw new InvalidOperationException("Google ClientSecret is not configured.");
    /* options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
     options.ClaimActions.MapJsonKey("urn:google:locale", "locale", "string");

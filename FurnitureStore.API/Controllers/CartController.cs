@@ -1,5 +1,6 @@
 ﻿using FurnitureStore.Application.DTOs;
 using FurnitureStore.Application.IServices;
+using FurnitureStore.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +14,12 @@ namespace FurnitureStore.API.Controllers
     public class CartController : Controller
     {
         private readonly ICartItemService _cartService;
+        private readonly IOrderService _orderService;
 
-        public CartController(ICartItemService cartService)
+        public CartController(ICartItemService cartService,IOrderService orderService)
         {
             _cartService = cartService;
+            _orderService = orderService;
         }
 
         // GET: api/cart
@@ -24,9 +27,7 @@ namespace FurnitureStore.API.Controllers
         public async Task<IActionResult> GetCart()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
-
+           
             var cart = await _cartService.GetCartItemsByUserAsync(userId);
             return Ok(cart);
         }
@@ -38,21 +39,17 @@ namespace FurnitureStore.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
-
-            dto.UserId = userId;
+            dto.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var createdItem = await _cartService.CreateCartItemAsync(dto);
             if (createdItem == null)
                 return BadRequest("Failed to add item to cart.");
 
-            return Ok(createdItem); // رجع الـ DTO بدلاً من مجرد رسالة
+            return Ok(createdItem); 
         }
 
-        // PUT: api/cart/items/{itemId}?newQuantity=5
-        [HttpPut("items/{itemId}")]
+        // PUT: api/cart/orderitems/{itemId}?newQuantity=5
+        [HttpPut("orderitems/{itemId}")]
         public async Task<IActionResult> UpdateItemQuantity(int itemId, [FromQuery] int newQuantity)
         {
             if (newQuantity <= 0)
@@ -91,5 +88,44 @@ namespace FurnitureStore.API.Controllers
 
             return Ok("Cart cleared successfully.");
         }
+        // POST: api/cart/checkout
+        [HttpPost("checkout")]
+        [Authorize(Roles = "Customer,Admin")]
+        public async Task<IActionResult> Checkout([FromBody] CheckoutDto checkoutDto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            ;
+
+            // 1. هات محتويات الكارت بتاع اليوزر
+            var cartItems = await _cartService.GetCartItemsByUserAsync(userId);
+            if (!cartItems.Any())
+                return BadRequest("Cart is empty.");
+
+            // 2. أنشئ Order جديد
+            var createOrderDto = new CreateOrderDto
+            {
+                UserId = userId,
+                ShippingStreet = checkoutDto.ShippingStreet,
+                ShippingCity = checkoutDto.ShippingCity,
+                ShippingState = checkoutDto.ShippingState,
+                ShippingZipCode = checkoutDto.ShippingZipCode,
+                ShippingCountry = checkoutDto.ShippingCountry,
+                PaymentMethod = checkoutDto.PaymentMethod,
+                OrderItems = cartItems.Select(ci => new CreateOrderItemDto
+                {
+                    ProductId = ci.ProductId,
+                    Quantity = ci.Quantity,
+                    UnitPrice = ci.UnitPrice,
+                    TotalPrice = ci.TotalPrice
+                }).ToList()
+            };
+
+            var order = await _orderService.CreateOrderAsync(createOrderDto);
+
+            await _cartService.ClearCartAsync(userId);
+
+            return Ok(order);
+        }
+
     }
 }

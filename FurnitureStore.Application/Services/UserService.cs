@@ -99,7 +99,7 @@ public class UserService : IUserService
 
     public async Task<LoginResultDto> LoginAsync(LoginDto loginDto)
     {
-        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
+        var user = await _userManager.Users.Include(u => u.Addresses).FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 
         if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
         {
@@ -139,7 +139,16 @@ public class UserService : IUserService
                 FullName = user.FullName,
                 Email = user.Email??"",
                 PhoneNumber = user.PhoneNumber,
-                Roles = roles
+                Roles = roles,
+                Addresses = user.Addresses?.Select(a => new AddressDto
+                {
+                    Id = a.Id,
+                    Street = a.Street,
+                    City = a.City,
+                    State = a.State,
+                    PostalCode = a.ZipCode,
+                    Country = a.Country,
+                }).ToList() ?? new List<AddressDto>()
             }
         };
     }
