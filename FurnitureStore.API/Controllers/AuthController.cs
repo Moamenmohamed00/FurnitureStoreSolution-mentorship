@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using static FurnitureStore.Application.DTOs.OAuthen_login_DTOs;
 
 namespace FurnitureStore.API.Controllers
 {
@@ -21,13 +22,15 @@ namespace FurnitureStore.API.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
         private readonly IJwtService _jwtService ;
-        public AuthController(IUserService userService,IRefreshTokenService RefreshTokenService,UserManager<User> userManager,SignInManager<User> signInManager,IJwtService jwtService)
+        private readonly IExternalAuthService _externalAuthService;
+        public AuthController(IUserService userService,IRefreshTokenService RefreshTokenService,UserManager<User> userManager,SignInManager<User> signInManager,IJwtService jwtService,IExternalAuthService externalAuth)
         {
             _userService = userService;
             _refreshTokenService =  RefreshTokenService;
             _userManager = userManager;
             _signInManager = signInManager;
             _jwtService =  jwtService;
+            _externalAuthService = externalAuth;
         }
 
         [HttpPost("register")]
@@ -65,20 +68,13 @@ namespace FurnitureStore.API.Controllers
             var token = await _userService.LoginAsync(loginDto);
             if (token == null || !token.Succeeded)
                 return Unauthorized("Invalid email or password");
-            // RefreshToken
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(new NewRefreshTokenDto
-            {
-                UserId = token.User!.Id,
-                CreatedByIp = ipAddress
-            });
-
+           
             return Ok(new { /*Token = token,*/
                 Message = "Login successful",
                 AccessToken = token.Token,
                 AccessTokenExpiration = token.Expiration,
-                RefreshToken = refreshToken.Token,
-                RefreshTokenExpiration = refreshToken.Expires,
+                RefreshToken =token.Token,
+                RefreshTokenExpiration = DateTime.UtcNow.AddDays(7),
                 User = token.User
             });
         }
@@ -94,76 +90,37 @@ namespace FurnitureStore.API.Controllers
 
             return Ok("Logged out successfully.");
         }
-        [HttpGet("google-login")]
-        public IActionResult GoogleLogin()
+        [HttpPost("external-login")]
+        public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginDto dto)
         {
-            var properties = new AuthenticationProperties
-            {
-                RedirectUri = Url.Action("GoogleResponse")
-            };
-            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
-        }
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        [HttpGet("google-response")]
-        public async Task<IActionResult> GoogleResponse()
-        {
-            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var result = await _externalAuthService.ExternalLoginAsync(dto, ip);
 
-            if (!result.Succeeded)
-                return BadRequest("Google authentication failed.");
-
-            var claims = result.Principal.Identities
-                .FirstOrDefault()?.Claims.Select(claim =>
-                    new { claim.Type, claim.Value });
-
-            // email من جوجل
-            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-
-            // لو المستخدم مش موجود في Identity، اعمله Create
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-            {
-                user = new User
-                {
-                    UserName = email,
-                    Email = email,
-                    FullName = result.Principal.Identity?.Name ?? email
-                };
-                await _userManager.CreateAsync(user);
-                await _userManager.AddToRoleAsync(user, "Customer");
-            }
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var token = _jwtService.GenerateJwtToken(user, roles);
+            if (result == null)
+                return BadRequest("External login failed or provider not supported.");
 
             return Ok(new
             {
-                Message = "Google login successful",
-                AccessToken = token.Token,
-                AccessTokenExpiration = token.Expiration,
-                User = new UserDto
-                {
-                    Id = user.Id,
-                    FullName = user.FullName,
-                    Email = user.Email,
-                    Roles = roles
-                }
+                Message = $"{dto.Provider} login successful",
+                AccessToken = result.AccessToken,
+                AccessTokenExpiration = result.AccessTokenExpiration,
+                RefreshToken = result.RefreshToken,
+                RefreshTokenExpiration = result.RefreshTokenExpiration,
+                User = result.User
             });
         }
 
-        /*
+
         [HttpPost("set-password")]
-        public async Task<IActionResult> SetPassword(SetPasswordDto dto)
+        public async Task<IActionResult> SetLocalPassword([FromBody] SetLocalPasswordDto dto)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
+            var result = await _externalAuthService.SetLocalPasswordAsync(dto);
+            if (!result)
+                return BadRequest("Failed to set password. The user may already have one.");
 
-            var result = await _userManager.AddPasswordAsync(user, dto.Password);
-            if (result.Succeeded)
-                return Ok("Password set successfully");
-
-            return BadRequest(result.Errors);
-        }*/
+            return Ok("Password has been set successfully.");
+        }
 
     }
 }

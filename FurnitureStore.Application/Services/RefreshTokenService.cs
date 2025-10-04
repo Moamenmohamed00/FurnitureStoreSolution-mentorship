@@ -23,38 +23,22 @@ namespace FurnitureStore.Application.Services
             var refreshToken = new RefreshToken
             {
                 Token = /*dto.Token??*/Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-                Expires = dto.Expires,
+                Expires = DateTime.UtcNow.AddDays(7),
                 Created = DateTime.UtcNow,
                 CreatedByIp = dto.CreatedByIp,
                 UserId = dto.UserId
             };
           await  _unitOfWork.RefreshTokens.AddAsync(refreshToken);
             await _unitOfWork.CompleteAsync();
-            return new RefreshTokenDto
-            {
-                Token = refreshToken.Token,
-                Expires = refreshToken.Expires,
-                Created = refreshToken.Created,
-                CreatedByIp = refreshToken.CreatedByIp,
-                Revoked = refreshToken.Revoked,
-                RevokedByIp = refreshToken.RevokedByIp
-            };
-
+            
+        return MapToDto(refreshToken);
         }
 
         public async Task<RefreshTokenDto?> GetRefreshTokenAsync(string token)
         {
             var refreshToken = (await _unitOfWork.RefreshTokens.FindAsync(rt => rt.Token == token)).FirstOrDefault();
             if (refreshToken == null) return null;
-            return new RefreshTokenDto
-            {
-                Token = refreshToken.Token,
-                Expires = refreshToken.Expires,
-                Created = refreshToken.Created,
-                CreatedByIp = refreshToken.CreatedByIp,
-                Revoked = refreshToken.Revoked,
-                RevokedByIp = refreshToken.RevokedByIp
-            };
+           return MapToDto(refreshToken);
 
         }
 
@@ -110,5 +94,16 @@ namespace FurnitureStore.Application.Services
             return refreshToken != null && refreshToken.IsActive/*&&refreshToken.Expires>DateTime.UtcNow*/;
 
         }
+        // Helper method to map RefreshToken entity to RefreshTokenDto
+        private static RefreshTokenDto MapToDto(RefreshToken rt) => new RefreshTokenDto
+        {
+            Token = rt.Token,
+            Expires = rt.Expires,
+            Created = rt.Created,
+            CreatedByIp = rt.CreatedByIp,
+            Revoked = rt.Revoked,
+            RevokedByIp = rt.RevokedByIp
+        };
+
     }
 }

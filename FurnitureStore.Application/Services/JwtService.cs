@@ -37,7 +37,8 @@ namespace FurnitureStore.Application.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Authentication:Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var expiration = DateTime.UtcNow.AddHours(2);
+            var expireMinutes = int.Parse(_config["Authentication:Jwt:ExpireMinutes"] ?? "120");
+            var expiration = DateTime.UtcNow.AddMinutes(expireMinutes);
 
             var token = new JwtSecurityToken(
                 issuer: _config["Authentication:Jwt:Issuer"],

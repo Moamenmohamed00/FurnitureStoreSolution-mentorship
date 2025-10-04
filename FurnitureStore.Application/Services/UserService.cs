@@ -174,21 +174,18 @@ public class UserService : IUserService
     public async Task<IEnumerable<UserDto>> GetAllAsync()
     {
         var users = await _userManager.Users.ToListAsync();
-        var result = new List<UserDto>();
-
-        foreach (var user in users)
+        var userRoles = await Task.WhenAll(users.Select(async u => new {
+            User = u,
+            Roles = await _userManager.GetRolesAsync(u)
+        }));
+       return userRoles.Select(ur => new UserDto
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            result.Add(new UserDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email ?? "",
-                PhoneNumber = user.PhoneNumber,
-                Roles = roles
-            });
-        }
-        return result;
+            Id = ur.User.Id,
+            FullName = ur.User.FullName,
+            Email = ur.User.Email ?? "",
+            PhoneNumber = ur.User.PhoneNumber,
+            Roles = ur.Roles
+        });
     }
 
     public async Task<bool> UpdateAsync(string id, UpdateUserDto updateUserDto)

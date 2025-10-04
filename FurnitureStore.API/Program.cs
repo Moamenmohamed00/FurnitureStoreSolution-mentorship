@@ -21,9 +21,6 @@ using ServiceStack.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
-// Add services to the container.
-
-builder.Services.AddControllers();
 
 // 1. DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options=>
@@ -32,14 +29,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options=>
     );
 
 //2.Identity
-builder.Services.AddIdentity<User, IdentityRole>(options =>
+builder.Services.AddIdentityCore<User>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequiredLength = 8;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = true;
 })
+.AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>()
+.AddSignInManager<SignInManager<User>>()
 .AddDefaultTokenProviders();
 // 3. JWT Authentication
 
@@ -101,6 +100,8 @@ builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
+
 //builder.Services.AddScoped<IHttpContextAccessor, HttpContextAccessor>();// To access HttpContext in services ip address
 builder.Services.AddHttpContextAccessor();
 // 5. Swagger with JWT support
@@ -136,7 +137,6 @@ builder.Services.AddSwaggerGen(c =>
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, true));// Handle enums as strings in camelCase
@@ -145,8 +145,9 @@ builder.Services.AddEndpointsApiExplorer();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment()||app.Environment.IsProduction())
 {
+    app.UseDeveloperExceptionPage(); // ✅ أضف هذا مؤقتًا
     //app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
