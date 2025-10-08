@@ -17,6 +17,7 @@ using DotNetEnv;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ServiceStack.Text;
+using FurnitureStore.Domain.Settings;
 // Add services to the container
 
 var builder = WebApplication.CreateBuilder(args);
@@ -101,6 +102,8 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IOrderItemService, OrderItemService>();
 builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Authentication:SmtpSettings"));
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 //builder.Services.AddScoped<IHttpContextAccessor, HttpContextAccessor>();// To access HttpContext in services ip address
 builder.Services.AddHttpContextAccessor();

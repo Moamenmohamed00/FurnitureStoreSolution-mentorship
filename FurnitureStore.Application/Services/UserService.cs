@@ -20,8 +20,9 @@ public class UserService : IUserService
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IJwtService _jwtService;
+    private readonly IEmailService _emailService;
 
-    public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config,IRefreshTokenService refreshTokenService,IHttpContextAccessor httpContextAccessor,IJwtService jwtService)
+    public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config,IRefreshTokenService refreshTokenService,IHttpContextAccessor httpContextAccessor,IJwtService jwtService,IEmailService emailService)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -29,6 +30,7 @@ public class UserService : IUserService
         _refreshTokenService = refreshTokenService;
         _httpContextAccessor = httpContextAccessor;
         _jwtService = jwtService;
+        _emailService = emailService;
     }
 
     #region Auth
@@ -254,7 +256,70 @@ public class UserService : IUserService
 
         return await _userManager.GetRolesAsync(user);
     }
+
+    public async Task<bool> SendOtpAsync(SendOtpDto dto)
+    {
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+        if (user == null)
+            return false;
+
+        // توليد كود OTP عشوائي
+        var otp = new Random().Next(100000, 999999).ToString();
+        user.OtpCode = otp;
+        user.OtpCodeExpiration = DateTime.UtcNow.AddMinutes(5);
+
+        await _userManager.UpdateAsync(user);
+
+        // إرسال الإيميل
+        var message = new EmailMessageDto
+        {
+            To = dto.Email,
+            Subject = "Your FurnitureStore OTP Code",
+            Body = $@" <h2>Furniture Store - Password Reset</h2> <p>Your OTP code is:</p> <h3 style='color:#2e86de'>{otp}</h3> <p>This code will expire in 5 minutes.</p> <br/> <p>If you didn't request this, please ignore this email.</p>"
+        };
+        await _emailService.SendEmailAsync(message);
+
+        return true;
+    }
+
+    public async Task<bool> VerifyOtpAsync(VerifyOtpDto dto)
+    {
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+        if (user == null)
+            return false;
+
+        if (user.OtpCode != dto.OtpCode)
+            return false;
+
+        if (user.OtpCodeExpiration == null || user.OtpCodeExpiration < DateTime.UtcNow)
+            return false;
+
+        return true;
+    }
+
+    public Task<IdentityResult> ResetPasswordWithOtpAsync(ResetPasswordDto dto)
+    {
+        return Task.Run(async () =>
+        {
+            var user = await _userManager.FindByEmailAsync(dto.Email);
+            if (user == null)
+                return IdentityResult.Failed(new IdentityError { Description = "User not found." });
+            if (user.OtpCode != dto.OtpCode || user.OtpCodeExpiration == null || user.OtpCodeExpiration < DateTime.UtcNow)
+                return IdentityResult.Failed(new IdentityError { Description = "Invalid or expired OTP code." });
+            if (dto.NewPassword != dto.ConfirmPassword)return IdentityResult.Failed(new IdentityError { Description = "Passwords do not match." });
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, resetToken, dto.NewPassword);
+            // Clear OTP fields after successful password reset
+            if (result.Succeeded)
+            {
+                user.OtpCode = null;
+                user.OtpCodeExpiration = null;
+                await _userManager.UpdateAsync(user);
+            }
+            return result;
+        });
+    }
     #endregion
 
-  
+
 }

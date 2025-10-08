@@ -21,5 +21,8 @@ namespace FurnitureStore.Application.IServices
         Task <LoginResultDto> LoginAsync(LoginDto loginDto);
         Task<bool> UpdateAsync(string id, UpdateUserDto updateUserDto);
         Task<bool> DeleteAsync(string id);
+        Task<bool> SendOtpAsync(SendOtpDto dto);
+        Task<bool> VerifyOtpAsync(VerifyOtpDto dto);
+        Task<IdentityResult> ResetPasswordWithOtpAsync(ResetPasswordDto dto);
     }
 }

@@ -11,7 +11,7 @@ namespace FurnitureStore.Application.DTOs
     {
         
         [Required,MaxLength(100)]
-        [RegularExpression("^[a-zA-Z]", ErrorMessage = "Name must contain only letters.")]
+        [RegularExpression("^[a-zA-Z ]+$", ErrorMessage = "Name must contain only letters and spaces.")]
         public string FullName { get; set; } = string.Empty;
         
         [Required, EmailAddress]

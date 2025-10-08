@@ -17,6 +17,9 @@ namespace FurnitureStore.Domain.Entities
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
         public ICollection<Address> Addresses { get; set; } = new List<Address>();
         public ICollection<Product> ProductsCreated { get; set; } = new List<Product>();
+        public string ? OtpCode { get; set; }
+        public DateTime? OtpCodeExpiration { get; set; }
+        public bool IsOtpVerified { get; set; } = false;
     }
 }
 
