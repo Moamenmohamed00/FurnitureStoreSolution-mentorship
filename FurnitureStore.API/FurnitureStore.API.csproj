@@ -27,4 +27,8 @@
     <ProjectReference Include="..\FurnitureStore.Persistence\FurnitureStore.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

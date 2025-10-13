@@ -154,9 +154,39 @@ public class UserService : IUserService
             }
         };
     }
+    public async Task<LoginResultDto> FingerPrintLoginAsync(FingerPrintLoginDto dto)
+    {
+        var user =await _userManager.FindByEmailAsync(dto.Email);
+        if (user == null) 
+            return new LoginResultDto { Succeeded = false };
+        if (user.FingerPrintHash != dto.FingerPrintData)
+            return new LoginResultDto { Succeeded = false };
+        var roles = await _userManager.GetRolesAsync(user);
+        var jwtResult = _jwtService.GenerateJwtToken(user, roles);
+        var newRefreshToken= new NewRefreshTokenDto
+        {
+            Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            Expires = DateTime.UtcNow.AddDays(7),
+            CreatedByIp = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserId = user.Id
+        };
+        var refreshTokenDto = await _refreshTokenService.GenerateRefreshTokenAsync(newRefreshToken);
+        return new LoginResultDto
+        {
+            Succeeded = true,
+            Token = jwtResult.Token,
+            Expiration = jwtResult.Expiration,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email??"non",
+                FullName = user.FullName
+            }
+        };
+    }
     #endregion
 
-    #region User Utils
+        #region User Utils
     public async Task<UserDto?> GetByIdAsync(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
@@ -176,18 +206,22 @@ public class UserService : IUserService
     public async Task<IEnumerable<UserDto>> GetAllAsync()
     {
         var users = await _userManager.Users.ToListAsync();
-        var userRoles = await Task.WhenAll(users.Select(async u => new {
-            User = u,
-            Roles = await _userManager.GetRolesAsync(u)
-        }));
-       return userRoles.Select(ur => new UserDto
+        var userDtos = new List<UserDto>();
+
+        foreach (var user in users)
         {
-            Id = ur.User.Id,
-            FullName = ur.User.FullName,
-            Email = ur.User.Email ?? "",
-            PhoneNumber = ur.User.PhoneNumber,
-            Roles = ur.Roles
-        });
+            var roles = await _userManager.GetRolesAsync(user);
+
+            userDtos.Add(new UserDto
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email ?? "",
+                PhoneNumber = user.PhoneNumber,
+                Roles = roles
+            });
+        }
+return userDtos;
     }
 
     public async Task<bool> UpdateAsync(string id, UpdateUserDto updateUserDto)

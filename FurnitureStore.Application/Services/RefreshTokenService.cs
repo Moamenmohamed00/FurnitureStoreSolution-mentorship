@@ -22,8 +22,8 @@ namespace FurnitureStore.Application.Services
         {
             var refreshToken = new RefreshToken
             {
-                Token = /*dto.Token??*/Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-                Expires = DateTime.UtcNow.AddDays(7),
+                Token = dto.Token??Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Expires = dto.Expires,
                 Created = DateTime.UtcNow,
                 CreatedByIp = dto.CreatedByIp,
                 UserId = dto.UserId

@@ -12,6 +12,7 @@ namespace FurnitureStore.Domain.Entities
     {
         [Required]
         public string FullName { get; set; }
+        public string? FingerPrintHash { get; set; }
         public DateTime CreatedAt { get; set; }= DateTime.UtcNow;
         public ICollection<Order> Orders { get; set; } = new List<Order>();
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();

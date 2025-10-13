@@ -77,7 +77,7 @@ namespace FurnitureStore.API.Controllers
                 Message = "Login successful",
                 AccessToken = token.Token,
                 AccessTokenExpiration = token.Expiration,
-                RefreshToken =token.Token,
+                RefreshToken =token.RefreshToken,
                 RefreshTokenExpiration = DateTime.UtcNow.AddDays(7),
                 User = token.User
             });
@@ -172,5 +172,23 @@ namespace FurnitureStore.API.Controllers
             return Ok(new { Message = "Password has been reset successfully." });
         }
 
+        [HttpPost("login-with-FingerPrint")]
+        public async Task<IActionResult> LoginWithFingerPrint([FromBody] FingerPrintLoginDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var token = await _userService.FingerPrintLoginAsync(dto);
+            if (token == null || !token.Succeeded)
+                return Unauthorized("Invalid fingerprint or user not found");
+            return Ok(new
+            { 
+                Message = "Login successful",
+                AccessToken = token.Token,
+                AccessTokenExpiration = token.Expiration,
+                RefreshToken = token.RefreshToken,
+                RefreshTokenExpiration = DateTime.UtcNow.AddDays(7),
+                User = token.User
+            });
+        }
     }
 }

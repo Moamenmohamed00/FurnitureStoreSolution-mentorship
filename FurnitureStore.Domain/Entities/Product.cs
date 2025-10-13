@@ -17,6 +17,7 @@ namespace FurnitureStore.Domain.Entities
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public ProductStatus Status { get; set; } = ProductStatus.Available;
+        public string ? ImageUrl { get; set; }
         //[ForeignKey("User")]
         //public string? UserId { get; set; }
         //public User? User { get; set; }

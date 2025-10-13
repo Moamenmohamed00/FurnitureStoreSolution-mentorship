@@ -24,5 +24,6 @@ namespace FurnitureStore.Application.IServices
         Task<bool> SendOtpAsync(SendOtpDto dto);
         Task<bool> VerifyOtpAsync(VerifyOtpDto dto);
         Task<IdentityResult> ResetPasswordWithOtpAsync(ResetPasswordDto dto);
+        Task<LoginResultDto> FingerPrintLoginAsync(FingerPrintLoginDto dto);
     }
 }

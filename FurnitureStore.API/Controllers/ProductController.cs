@@ -40,11 +40,22 @@ namespace FurnitureStore.API.Controllers
         // POST: api/product
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Create([FromBody] CreateProductDto createProductDto)
+        public async Task<IActionResult> Create([FromForm] CreateProductDto createProductDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
+            var uploadfolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(uploadfolder))
+            {
+                Directory.CreateDirectory(uploadfolder);
+            }
+            var fileName = $"{Guid.NewGuid()}_{createProductDto.Imagefile.FileName}";
+            var filePath = Path.Combine(uploadfolder, fileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await createProductDto.Imagefile.CopyToAsync(stream);
+            }
+            createProductDto.ImageUrl = $"/uploads/{fileName}";
             var created = await _productService.CreateProductAsync(createProductDto);
             if (created == null)
                 return BadRequest("Failed to create product.");

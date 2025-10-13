@@ -36,7 +36,8 @@ namespace FurnitureStore.Application.Services
                 Stock = createProductDto.Stock,
                 Color = createProductDto.Color,
                CategoryId=createProductDto.CategoryId,
-                BrandId=createProductDto.BrandId
+                BrandId=createProductDto.BrandId,
+                ImageUrl= createProductDto.ImageUrl
             };
 
             await _unitOfWork.Products.AddAsync(product);
@@ -57,7 +58,7 @@ namespace FurnitureStore.Application.Services
                 BrandId=product.BrandId,
                 CategoryId=product.CategoryId,
                 CategoryName=product.Category?.Name,
-                BrandName=product.Brand?.Name
+                BrandName=product.Brand?.Name,
 
             };
         }
